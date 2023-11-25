@@ -1,7 +1,7 @@
 /*
 Multithreaded Server Project
 
--Socket has been implemented using functions: establish and get_connection.
+-Socket has been implemented using functions: establish and getConnection.
 -main function has 5 threads allocated for client connection requests
 -main function successfully creates a thread and passes socket to a thread routine
 -Port number is now a command line argument/parameter
@@ -9,8 +9,6 @@ Multithreaded Server Project
 
 
 Things to do:
--Implement error checking on an input port number.
-	The port must be > 1024. 1-1024 are reserved by the system. There are no ports above 65535.
 -Need main function (or a separate function) to identify join requests from clients by "chat room name"
 	ex: "first", "gaming chat", "Lamar students chat"
 	possible solution:
@@ -39,39 +37,32 @@ Things to do:
 #include <limits.h>
 
 // Function Prototypes
-int establish(int);
-int get_connection(int);
-void* worker(void*); // worker thread
+int isPortValid(int, char*);
+int establishASocket(int);
+int getConnection(int);
+void* worker(void*);
 
 /* argc is the number of parameters - 2 are required for hostname and port number */
 int main(int argc, char* argv[]) // main thread, or dispatcher thread
 {
-	int server_s, client_s, port, i = 0;
-	pthread_t threads[5]; // 5 threads to support 5 clients
-	char buf[1000]; /* buffer for string the server sends */
+	int serverSocketFd;
+	int clientSocketFd;
+	int port;
+	int threadCounter = 0; 
+	pthread_t threads[5]; // 5 threads to support 5 clients simultaneously
+	char buf[1000]; // buffer for storing the string sent between clients and server
 
-	/* Check for proper server usage */
-	if (argc < 2) {
-		fprintf(stderr, "Usage: %s port\n", argv[0]);
-		exit(1);
-	}
-
-	port = atoi(argv[1]);
-
-	/* Check that the entered port number is not negative */
-	if (port < 2) {
-		fprintf(stderr, "Invalid port number\n");
-		exit(1);
-	}
+	// Store the port entered from the command line
+	port = isPortValid(argc, argv);
 
 	// Make a server socket
-	server_s = establish(port);
+	serverSocketFd = establishASocket(port);
 
 	/* Main server loop - start accepting incoming requests */
 	while (1) {
 
-		client_s = get_connection(server_s);
-		pthread_create(&threads[i++], NULL, &worker, &client_s);
+		clientSocketFd = getConnection(server_s);
+		pthread_create(&threads[threadCounter++], NULL, &worker, &clientSocketFd);
 
 		/* Join terminated thread //
 		if (pthread_join(threads[i-1], NULL) != 0) {
@@ -86,41 +77,64 @@ int main(int argc, char* argv[]) // main thread, or dispatcher thread
 
 
 	}
-	close(client_s);
-	close(server_s);
+	close(clientSocketFd);
+	close(serverSocketFd);
 
 	return 0;
 }
 
-// Assist from server.c
-// creates socket, binds, and listens
-int establish(int portnum)
+int isPortValid(int argc, char* argv)
 {
-	char   myname[_SC_HOST_NAME_MAX + 1];
-	int    s;
-	struct sockaddr_in serverAddress;	/* structure to hold server address */
+	// Check for proper command line format
+	if (argc < 2) {
+		fprintf(stderr, "Usage: %s port\n", argv[0]);
+		exit(1);
+	}
+
+	// The port must be above 1024. 1 - 1024 are reserved by the system. There are no ports above 65535.
+	if (argv[1] <= 1024 || argv[1] > 65535) {
+		fprintf(stderr, "The port number entered is invalid\n", argv[0]);
+		exit(1);
+	}
+	return atoi(argv[1]);
+}
+
+/*
+Creates a socket that is returned as a file descriptor.
+The socket is also binded and listens for connection requests.
+Error checking is performed after each socket function to notify user of failure.
+*/
+int establishASocket(int port)
+{
+	char   myname[_SC_HOST_NAME_MAX + 1]; // Maximum length of a hostname + a NULL character
+	int    s;	// Used to return a server file descriptor
+	struct sockaddr_in serverAddress;	// structure to hold the server address
 	struct hostent* hp;
 
-	memset(&serverAddress, 0, sizeof(struct sockaddr_in)); /* clear our address */
-	gethostname(myname, _SC_HOST_NAME_MAX);           /* who are we? */
-	hp = gethostbyname(myname);                  /* get our address info */
-	if (hp == NULL)                             /* we don't exist !? */
+	memset(&serverAddress, 0, sizeof(struct sockaddr_in)); // clear the address
+	gethostname(myname, _SC_HOST_NAME_MAX); // Store our hostname
+	hp = gethostbyname(myname); // Retrieve our address info
+	
+	if (hp == NULL) { // we don't exist !? */
+		fprintf(stderr, "Could not get hostname\n", argv[0]);
 		exit(1);
+	}
+
 	serverAddress.sin_family = hp->h_addrtype;           /* this is our host address */
-	serverAddress.sin_port = htons(portnum);	/* this is our port number */
+	serverAddress.sin_port = htons(port);	/* this is our port number */
 
 	if ((s = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
 		fprintf(stderr, "socket creation failed\n");
 		exit(1);
-	} /* create socket. No protocol such as TCP is specified */
+	}
 
 	if (bind(s, (struct sockaddr*)&serverAddress, sizeof(struct sockaddr_in)) < 0) {
 		fprintf(stderr, "bind failed\n");
 		close(s);
-		exit(1);                               /* bind address to socket */
+		exit(1);
 	}
 
-	if (listen(s, 5) < 0) {						/* max # of queued connects */
+	if (listen(s, 5) < 0) {
 		fprintf(stderr, "listen failed\n");
 		exit(1);
 	}
@@ -129,7 +143,7 @@ int establish(int portnum)
 }
 
 /* Wait for a connection to occur on a socket created with establish() */
-int get_connection(int s)
+int getConnection(int s)
 {
 	int t;                  /* socket of connection */
 

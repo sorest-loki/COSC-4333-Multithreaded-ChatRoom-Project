@@ -24,37 +24,37 @@ Things to do:
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <malloc.h>
 
-// Function prototype
-int call_socket(char*, int);
+// Function prototypes
+int isCommandLineCorrect(int);
+int isPortValid(char*);
+int createAndConnectSocket(char*, int);
 
 int main(int argc, char* argv[])
 {
-    int socket, port;
-    char buf[256]; /* buffer for data from the server */
+    int socketFd, port;
+    char buf[1000]; // buffer for storing the string sent between clients and server
 
-    /* Check for correct number of command-line arguments */
-    if (argc == 4) {
+    if (isCommandLineCorrect(argc) && isPortValid(argv[2])
         port = atoi(argv[2]);
-    }
-    else {
-        fprintf(stderr, "Usage: %s server-hostname port chat-room\n", argv[0]);
-        exit(1);
-    }
 
-    socket = call_socket(argv[1], port);
+    socketFd = createAndConnectSocket(argv[1], port);
 
     while (1)
     {
-        int length; /* number of characters that have been read */
+        int length; // number of characters that have been read
 
-        bzero(buf, 256);
-        fgets(buf, 256, stdin);
-        if (length = write(socket, buf, strlen(buf) + 1) < 0) {
+        // Clear buffer and perform next write operation
+        bzero(buf, 1000);
+        fgets(buf, 1000, stdin);
+        if (length = write(socketFd, buf, strlen(buf) + 1) < 0) {
             fprintf(stderr, "Error on writing");
         }
-        bzero(buf, 256);
-        if (length = read(socket, buf, 256) < 0) {
+
+        // Clear buffer and perform next read operation
+        bzero(buf, 1000);
+        if (length = read(socketFd, buf, 1000) < 0) {
             fprintf(stderr, "Error on reading");
         }
 
@@ -75,37 +75,59 @@ int main(int argc, char* argv[])
     printf("n: %d\n", charactersRead);
 
     /* Close the socket. */
-    close(socket);
+    close(socketFd);
     return 0;
 }
 
-int call_socket(char* hostname, int portnum)
+// Check whether the number of command-line arguments is correct
+int isCommandLineCorrect(int argc)
 {
-    struct sockaddr_in serverAddress;
-    struct hostent* server;
-    int s;
+    if (argc != 4) {
+        fprintf(stderr, "Usage: %s server-hostname port chat-room\n", argv[0]);
+        exit(1);
+    }
+    return 1;
+}
 
-    if ((s = socket(AF_INET, SOCK_STREAM, 0)) < 0) { /* get socket */
+// The port must be above 1024. 1 - 1024 are reserved by the system. There are no ports above 65535.
+int isPortValid(char* arg)
+{    
+    if (arg <= 1024 || arg > 65535) {
+        fprintf(stderr, "The port number entered is invalid\n", arg);
+        exit(1);
+    }
+    return 1;
+}
+
+// Function builds a socket, gets the IP of the server, and attempts a connection to the server.
+int createAndConnectSocket(char* hostname, int port)
+{
+    struct sockaddr_in address;
+    struct hostent* server;
+    int fd; // Client file descriptor
+
+    if ((fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) { // Attempt socket creation
         fprintf(stderr, "socket creation failed\n");
         exit(1);
     }
 
-    if ((server = gethostbyname(hostname)) == NULL) {    /* do we know the host's */
-        fprintf(stderr, "invalid host: %s\n", hostname);       /* no */
+    &address = malloc(sizeof(struct sockaddr_in));
+    address.sin_family = AF_INET;
+    address.sin_port = htons(port); // host to network short function - used to account for little/big Endian
+
+    if ((server = gethostbyname(hostname)) == NULL) { // Check that the host is known
+        fprintf(stderr, "invalid host: %s\n", hostname);
         exit(1);
     }
 
-    serverAddress.sin_family = AF_INET;
-    bcopy((char*)server->h_addr, (char*)&serverAddress.sin_addr.s_addr, server->h_length);
-    serverAddress.sin_port = htons(portnum);
-    //memset(&serverAddress, 0, sizeof(serverAddress));
-    //memcpy((char*)&serverAddress.sin_addr, server->h_addr, server->h_length); /* set address */
+    // Copies the byte sequence from server into the address
+    bcopy((char*)server->h_addr, (char*)&address.sin_addr.s_addr, server->h_length);
 
-    if (connect(s, (struct sockaddr*)&serverAddress, sizeof(serverAddress)) < 0) { /* connect */
-        close(s);
+    if (connect(fd, (struct sockaddr*)&address, sizeof(address)) < 0) { // Attempt socket connect
+        close(fd);
         fprintf(stderr, "connect failed\n");
         exit(1);
     }
 
-    return(s);
+    return(fd);
 }
