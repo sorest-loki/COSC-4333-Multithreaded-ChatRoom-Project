@@ -47,13 +47,13 @@ clientFD -> Server main, check current thread names ->
 #include <sys/types.h>
 #include <string.h>
 #include <limits.h>
-#define NUMBER_OF_CLIENTS_SUPPORTED = 5
+#define NUMBER_OF_CLIENTS_SUPPORTED 5
 
 // Function Prototypes
 int isPortValid(int, char*);
 int establishASocket(int);
 int getConnection(int);
-void* worker(void*);
+//void* worker(void*);
 
 // argc is the number of parameters needed to start the program 
 // 2 are required for - one for hostname and one for port number
@@ -61,29 +61,37 @@ int main(int argc, char* argv[])
 {
 	int serverSocketFd; // Used as socket file descriptors
 	int clientSocketFd;
-	int port;
-	int threadCounter = 0; // maybe change to 
-	struct chatRooms;
+	int serverPort;
+	int chatRoomCounter = 0;
+	char buf[1000]; // buffer for storing the string sent between clients and server
+	struct chatRoom;
 	{
-
-		pthread_t threads[NUMBER_OF_CLIENTS_SUPPORTED];
+		char* name;
+		pthread_t thread;
+		int port;
+		int socketFD;
 	};
 	
-	char buf[1000]; // buffer for storing the string sent between clients and server
+
 
 	// Store the port entered from the command line
 	// Function does some error checking on the user input to ensure port is acceptable
-	port = isPortValid(argc, argv);
+	serverPort = isPortValid(argc, argv[1]);
 
 	// Make a server socket
-	serverSocketFd = establishASocket(port);
+	serverSocketFd = establishASocket(serverPort);
 
 	/* Server loop - start accepting incoming requests */
 	while (1) {
 
 		clientSocketFd = getConnection(serverSocketFd);
-		pthread_create(&threads[threadCounter++], NULL, &worker, &clientSocketFd);
-
+		printf("Connection to a Client was successful\n");
+		if (read(clientSocketFd, buf, 1000) < 0) {
+			fprintf(stderr, "Failed to read chatroom name from client.\n");
+			exit(1);
+		}
+		//pthread_create(&threads[threadCounter++], NULL, &worker, &clientSocketFd);
+		break;
 	}
 	close(clientSocketFd);
 	close(serverSocketFd);
@@ -98,17 +106,19 @@ An error is also returned to the user if the port is not acceptable.
 int isPortValid(int argc, char* argv)
 {
 	// Check for proper command line format
-	if (argc < 2) {
-		fprintf(stderr, "Usage: %s port\n", argv[0]);
+	if (argc != 2) {
+		fprintf(stderr, "Usage: ./Server (Port)\n");
 		exit(1);
 	}
+	
+	int port = atoi(argv);
 
 	// The port must be above 1024. 1 - 1024 are reserved for the system. There are no ports above 65535.
-	if (argv[1] <= 1024 || argv[1] > 65535) {
-		fprintf(stderr, "The port number entered is invalid\n", argv[0]);
+	if (port <= 1024 || port > 65535) {
+		fprintf(stderr, "The port number entered is invalid\n");
 		exit(1);
 	}
-	return atoi(argv[1]);
+	return port;
 }
 
 /*
@@ -127,12 +137,11 @@ int establishASocket(int port)
 	hostIP = gethostbyname(myname); // Store our address info
 	
 	if (hostIP == NULL) { // Check if retrieving the hostname IP did not work
-		fprintf(stderr, "Hostname could not be determined\n", argv[0]);
+		fprintf(stderr, "Hostname could not be determined\n");
 		exit(1);
 	}
 
 	// The next several lines of code construct the socket address
-	&serverAddress = malloc(sizeof(struct sockaddr_in));
 	serverAddress.sin_family = hostIP->h_addrtype; // this is the host address
 	serverAddress.sin_port = htons(port); // host to network short function - used to account for little/big Endian
 
@@ -141,7 +150,7 @@ int establishASocket(int port)
 		exit(1);
 	}
 
-	if (bind(socketFD, &serverAddress, sizeof(serverAddress)) < 0) { // Attempt socket address binding
+	if (bind(socketFD, (struct sockaddr*)&serverAddress, sizeof(struct sockaddr_in)) < 0) { // Attempt socket address binding
 		fprintf(stderr, "bind failed\n");
 		close(socketFD);
 		exit(1);
@@ -160,9 +169,9 @@ int getConnection(int socketFD)
 {
 	int clientSocketFD;
 	struct sockaddr_in clientAddress;
-	int clientAddressSize = sizeof(struct sockaddr_in);
+	socklen_t clientAddressSize = sizeof(struct sockaddr_in);
 
-	if ((clientSocketFD = accept(socketFD, &clientAddress, &clientAddressSize)) < 0) { // Accept connection if there is one
+	if ((clientSocketFD = accept(socketFD, (struct sockaddr*)&clientAddress, &clientAddressSize)) < 0) { // Accept connection if there is one
 		fprintf(stderr, "accept failed\n");
 		exit(1);
 	}
@@ -170,7 +179,7 @@ int getConnection(int socketFD)
 	return(clientSocketFD);
 }
 
-// This is the thread routine that runs when a thread is created to execute a command //
+/*// This is the thread routine that runs when a thread is created to execute a command //
 void* worker(void* arg)
 {
 	int socket;
@@ -186,7 +195,7 @@ void* worker(void* arg)
 		exit(1);
 	}
 
-	/* iterate, echoing all data received until end of file */
+	// iterate, echoing all data received until end of file
 	while ((len = read(socket, buff, 256)) > 0) {
 		if (len = write(socket, buff, strlen(buff) + 1) < 0) {
 			fprintf(stderr, "Error in the thread. Failed to write to buffer.\n");
@@ -202,3 +211,4 @@ void* worker(void* arg)
 
 	pthread_exit(0);
 }
+*/
