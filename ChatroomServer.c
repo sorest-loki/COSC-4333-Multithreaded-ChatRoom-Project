@@ -1,39 +1,11 @@
 /*
 Multithreaded Server Project
 
--Socket has been implemented using functions: establish and getConnection.
--main function has 5 threads allocated for client connection requests
--main function successfully creates a thread and passes socket to a thread routine
--Port number is now a command line argument/parameter
--Multiple clients can simultaneously connect to server, but clients can only echo messages to themselves
+Shahanze Sabri
+Roberto Rivera
+Javian Zeno
 
-
-Things to do:
--Need main function (or a separate function) to identify join requests from clients by "chat room name"
-	ex: "first", "gaming chat", "Lamar students chat"
-	possible solution:
-	Make an array of chars initialized to NULL values.
-	Every request that comes in, take the passed name parameter and compare it with each array value.
-	If no match, then a new thread is created and chat room	built.
-	If there is a match, then server places client in appropriate chat room.
--Need main function (or a separate function) to start a new thread for a chat room if client wants to join a room
- that does not exist yet
--Need main function (or a separate function) to group incoming clients together when the clients want to join the
- same chat room
--Need every thread (chat room) to terminate when all clients are gone
--Thread routine needs implementation for receiving one message and broadcasting the message to all other clients
-
-client sends the chat name as a string...
-server main doesn't use worker thread, only separate threads
-separate threads require their own socketFD and port, which server main can assign
-
-thread names:
-a Structure that holds:
-chatroom name as a string
-socketFD as an int
-array of threads as a pthread type
-
-clientFD -> Server main, check current thread names -> 
+2023 Fall COSC 4333 - Distributed Systems
 */
 
 #include <stdio.h>
@@ -55,13 +27,12 @@ int clientCounter = 0; // Tracks concurrent clien
 int isPortValid(int, char*);
 int establishASocket(int);
 int getConnection(int);
-void* worker(void*);
 void handleIncomingConnection(int);
+void* worker(void*);
 
 struct client
 	{
 		char* name;
-		// pthread_t thread; // not sure if needed
 		int port;
 		int socketFD;
 		int ID;
@@ -228,6 +199,15 @@ int getConnection(int socketFD)
 	return(clientSocketFD);
 }
 
+/*
+This function starts a thread that will handle all read/write operations between clients
+*/
+void handleIncomingConnection(int clientSocketFd)
+{
+	pthread_t id;
+	pthread_create(&id, NULL, &worker, &clientSocketFd);
+}
+
 // This is the thread routine that runs when a thread is created to execute a command //
 void* worker(void* clientSocketFd)
 {
@@ -254,13 +234,4 @@ void* worker(void* clientSocketFd)
 	close(socketFd);
 
 	pthread_exit(0);
-}
-
-/*
-This function starts a thread that will handle all read/write operations between clients
-*/
-void handleIncomingConnection(int clientSocketFd)
-{
-	pthread_t id;
-	pthread_create(&id, NULL, &worker, &clientSocketFd);
 }

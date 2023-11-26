@@ -1,18 +1,11 @@
 /*
-Chat Client Project
+Chatroom Client Project
 
--Implemented socket for client to connect to server
--Added error catching if a user does not input correct command parameters (server host & port)
--Added a command parameter for "chat room name", so that a client can specify the chat room
- it wants to join. ex: "first", "Lamar student chat", "COSC 4333 chat"
--Implemented a way to leave a chat room (using the word "Bye" ~case sensitive)
+Shahanze Sabri
+Roberto Rivera
+Javian Zeno
 
-Things to do:
--Clean up code
-    review and update variable names to be more descriptive
-    review and update function names to be more descriptive
-    review error catching
-    add block documentation for functions and variables
+2023 Fall COSC 4333 - Distributed Systems
 */
 
 #include <sys/types.h>
