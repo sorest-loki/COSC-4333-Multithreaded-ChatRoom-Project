@@ -31,14 +31,14 @@ void handleIncomingConnection(int);
 void* worker(void*);
 
 struct client
-	{
-		char* name;
-		int port;
-		int socketFd;
-		int ID;
+{
+	char* name;
+	int port;
+	int socketFd;
+	int ID;
 };
 
-struct client connectedClients[NUMBER_OF_CLIENTS_SUPPORTED];
+int connectedClients[NUMBER_OF_CLIENTS_SUPPORTED];
 
 /*
 argc is the number of parameters needed to start the program
@@ -63,8 +63,8 @@ int main(int argc, char* argv[])
 
 		// Block incoming connections if maximum number of clients are connected
 		if (clientCounter <= NUMBER_OF_CLIENTS_SUPPORTED) {
-		
-		// Try connecting a new client
+
+			// Try connecting a new client
 			clientSocketFd = getConnection(serverSocketFd);
 			// Check whether getConnection() accepts client's socket or not
 			if (clientSocketFd < 0) {
@@ -75,7 +75,7 @@ int main(int argc, char* argv[])
 				printf("Connection to a Client was successful\n");
 			}
 
-		// Read the name of the chatroom a client wants to join
+			// Read the name of the chatroom a client wants to join
 			printf("Reading the chatroom name from client...\n");
 			if (read(clientSocketFd, buf, 1000) < 0) {
 				fprintf(stderr, "Failed to read chatroom name from client.\n");
@@ -89,9 +89,9 @@ int main(int argc, char* argv[])
 				}
 			}
 
-		// Move client to existing thread
-			
-		// Move client to a new thread that will handle read/write operations
+			// Move client to existing thread
+
+			// Move client to a new thread that will handle read/write operations
 			handleIncomingConnection(clientSocketFd);
 		}
 		else {
@@ -116,7 +116,7 @@ int isPortValid(int argc, char* argv)
 		fprintf(stderr, "Usage: ./Server (Port)\n");
 		exit(1);
 	}
-	
+
 	int port = atoi(argv);
 
 	// The port must be above 1024. 1 - 1024 are reserved for the system. There are no ports above 65535.
@@ -141,7 +141,7 @@ int establishASocket(int port)
 
 	gethostname(myname, _SC_HOST_NAME_MAX); // Retrieve our hostname
 	hostIP = gethostbyname(myname); // Store our address info
-	
+
 	if (hostIP == NULL) { // Check if retrieving the hostname IP did not work
 		fprintf(stderr, "Hostname could not be determined\n");
 		exit(1);
@@ -172,7 +172,7 @@ int establishASocket(int port)
 	return(socketFD);
 }
 
-/* 
+/*
 Wait for a connection to occur on a socket created with establishASocket()
 Also increments a count for tracking the number of connected clients
 */
@@ -187,7 +187,7 @@ int getConnection(int socketFD)
 		exit(1);
 	}
 
-	clientCounter++;
+	connectedClients[clientCounter++] = clientSocketFD;
 	return(clientSocketFD);
 }
 
