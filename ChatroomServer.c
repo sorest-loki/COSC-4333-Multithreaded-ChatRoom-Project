@@ -56,11 +56,12 @@ int isPortValid(int, char*);
 int establishASocket(int);
 int getConnection(int);
 void* worker(void*);
+void handleIncomingConnection(int);
 
 struct client
 	{
 		char* name;
-		pthread_t thread; // not sure if needed
+		// pthread_t thread; // not sure if needed
 		int port;
 		int socketFD;
 		int ID;
@@ -72,11 +73,10 @@ argc is the number of parameters needed to start the program
 */
 int main(int argc, char* argv[])
 {
-	int serverSocketFd; // Used as socket file descriptors
-	int clientSocketFd;
+	int serverSocketFd; // Used as socket file descriptor
 	int serverPort;
 	char buf[1000]; // buffer for storing the string sent between clients and server
-	struct client connectedClients[NUMBER_OF_CLIENTS_SUPPORTED];
+	struct client connectedClients[NUMBER_OF_CLIENTS_SUPPORTED]; // might not be necessary
 
 	// Store the port entered from the command line
 	// Function does some error checking on the user input to ensure port is acceptable
@@ -90,26 +90,40 @@ int main(int argc, char* argv[])
 
 		// Block incoming connections if maximum number of clients are connected
 		if (clientCounter <= NUMBER_OF_CLIENTS_SUPPORTED) {
-			clientSocketFd = getConnection(serverSocketFd);
+		
+		// Try connecting a new client
+			int clientSocketFd = getConnection(serverSocketFd);
+			// Check whether getConnection() accepts client's socket or not
+			if (clientSocketFd < 0) {
+				fprintf(stderr, "Error on accepting client socket...\n");
+				exit(1);
+			}
+			else {
+				printf("Connection to a Client was successful\n");
+			}
+
+		// Read the name of the chatroom a client wants to join
+			printf("Reading the chatroom name from client...\n");
+			if (read(clientSocketFd, buf, 1000) < 0) {
+				fprintf(stderr, "Failed to read chatroom name from client.\n");
+				exit(1);
+			}
+
+			// Save the chatroom name from client and compare with existing chatroom names
+			for (int i = 0; i < NUMBER_OF_CLIENTS_SUPPORTED; i++) {
+				if (strncmp(connectedClients[i].name, buf, strlen(buf)) == 0) {
+					// The client wants to join a room that exists
+				}
+			}
+
+		// Move client to existing thread
+			
+		// Move client to a new thread that will handle read/write operations
+			handleIncomingConnection(serverSocketFd);
 		}
 		else {
 			printf("Connection limit has been reached. Please try again later.\n");
 			continue;
-		}
-
-		printf("Connection to a Client was successful\n");
-
-		// Read the name of the chatroom a client wants to join
-		if (read(clientSocketFd, buf, 1000) < 0) {
-			fprintf(stderr, "Failed to read chatroom name from client.\n");
-			exit(1);
-		}
-
-		// Save the chatroom name from client and compare with existing chatroom names
-		for (int i = 0; i < NUMBER_OF_CLIENTS_SUPPORTED; i++) {
-			if (strncmp(connectedClients[i].name, buf, strlen(buf)) == 0) {
-				// The client wants to join a room that exists
-			}
 		}
 
 		/*// Declare a new chatRoom
@@ -120,12 +134,8 @@ int main(int argc, char* argv[])
 		room.ID = 
 		clientCounter++;
 		*/
-
-		pthread_create(&(room.thread), NULL, &worker, &clientSocketFd);
-		
 	}
 
-	close(clientSocketFd);
 	close(serverSocketFd);
 
 	return 0;
@@ -198,7 +208,10 @@ int establishASocket(int port)
 	return(socketFD);
 }
 
-/* Wait for a connection to occur on a socket created with establishASocket() */
+/* 
+Wait for a connection to occur on a socket created with establishASocket()
+Also increments a count for tracking the number of connected clients
+*/
 int getConnection(int socketFD)
 {
 	int clientSocketFD;
@@ -215,24 +228,19 @@ int getConnection(int socketFD)
 }
 
 // This is the thread routine that runs when a thread is created to execute a command //
-void* worker(void* arg)
+void* worker(void* serverSocketFD)
 {
-	int socket;
-	socket = *(int*)arg;
+	int socketFd;
+	socketFd = *(int*)serverSocketFD;
 	int	len = 0;
-	char buff[256];
+	char buff[1000];
 
 	// Clear any data in the buffer
-	bzero(buff, 256);
-
-	if (socket < 0) {
-		fprintf(stderr, "Socket failed to pass to thread routine...\n");
-		exit(1);
-	}
+	bzero(buff, 1000);
 
 	// iterate, echoing all data received until end of file
-	while ((len = read(socket, buff, 256)) > 0) {
-		if (len = write(socket, buff, strlen(buff) + 1) < 0) {
+	while ((len = read(socketFd, buff, 1000)) > 0) {
+		if (len = write(socketFd, buff, strlen(buff) + 1) < 0) {
 			fprintf(stderr, "Error in the thread. Failed to write to buffer.\n");
 			exit(1);
 		}
@@ -242,7 +250,16 @@ void* worker(void* arg)
 			break;
 	}
 
-	close(socket);
+	close(socketFd);
 
 	pthread_exit(0);
+}
+
+/*
+This function starts a thread that will handle all read/write operations between clients
+*/
+void handleIncomingConnection(int serverSocketFD)
+{
+	pthread_t id;
+	pthread_create(&id, NULL, &worker, &serverSocketFD);
 }

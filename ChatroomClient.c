@@ -36,7 +36,7 @@ int main(int argc, char* argv[])
 {
     int socketFd, port;
     char buf[1000]; // buffer for storing the string sent between clients and server
-    char username[50]; // Used for displaying the name of a user sending a message
+    char* username; // Used for displaying the name of a user sending a message
 
     if (isCommandLineCorrect(argc) && isPortValid(argv[2]))
         port = atoi(argv[2]);
@@ -75,7 +75,7 @@ int main(int argc, char* argv[])
             fprintf(stderr, "Error on reading");
         }
 
-        printf("Server: %s", buf);
+        printf("%s%s", username, buf);
 
         int i = strncmp("Bye", buf, 3);
         if (i == 0)
@@ -156,7 +156,7 @@ int createAndConnectSocket(char* hostname, int port)
 
 char* getUsername()
 {
-    char* username = malloc(50);
+    char* username = (char*)malloc(50);
 
     printf("Type your user name: ");
 
