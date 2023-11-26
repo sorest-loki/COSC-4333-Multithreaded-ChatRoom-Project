@@ -21,7 +21,7 @@ Javian Zeno
 #include <limits.h>
 #define NUMBER_OF_CLIENTS_SUPPORTED 5
 
-int clientCounter = 0; // Tracks concurrent clien
+int clientCounter = 0; // Tracks the number of concurrent clients
 
 // Function Prototypes
 int isPortValid(int, char*);
@@ -38,6 +38,8 @@ struct client
 		int ID;
 };
 
+struct client connectedClients[NUMBER_OF_CLIENTS_SUPPORTED];
+
 /*
 argc is the number of parameters needed to start the program
 2 are required for - one for hostname and one for port number
@@ -48,7 +50,6 @@ int main(int argc, char* argv[])
 	int clientSocketFd;
 	int serverPort;
 	char buf[1000]; // buffer for storing the string sent between clients and server
-	struct client connectedClients[NUMBER_OF_CLIENTS_SUPPORTED]; // might not be necessary
 
 	// Store the port entered from the command line
 	// Function does some error checking on the user input to ensure port is acceptable
