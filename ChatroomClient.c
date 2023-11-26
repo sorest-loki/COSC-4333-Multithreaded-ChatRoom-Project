@@ -102,8 +102,10 @@ int isPortValid(char* arg)
 // Function builds a socket, gets the IP of the server, and attempts a connection to the server.
 int createAndConnectSocket(char* hostname, int port)
 {
-    struct sockaddr_in address;
-    struct hostent* server;
+    struct sockaddr_in address; // Structure to hold the server address
+    // The hostent structure gives access to (int h_addrtype) Address type,
+    // and (int h_length) the length, in bytes, of the address.
+    struct hostent* server; 
     int fd; // Client file descriptor
 
     if ((fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) { // Attempt socket creation
@@ -111,6 +113,7 @@ int createAndConnectSocket(char* hostname, int port)
         exit(1);
     }
 
+    // The next several lines of code construct the socket address
     &address = malloc(sizeof(struct sockaddr_in));
     address.sin_family = AF_INET;
     address.sin_port = htons(port); // host to network short function - used to account for little/big Endian

@@ -22,6 +22,18 @@ Things to do:
  same chat room
 -Need every thread (chat room) to terminate when all clients are gone
 -Thread routine needs implementation for receiving one message and broadcasting the message to all other clients
+
+client sends the chat name as a string...
+server main doesn't use worker thread, only separate threads
+separate threads require their own socketFD and port, which server main can assign
+
+thread names:
+a Structure that holds:
+chatroom name as a string
+socketFD as an int
+array of threads as a pthread type
+
+clientFD -> Server main, check current thread names -> 
 */
 
 #include <stdio.h>
@@ -35,6 +47,7 @@ Things to do:
 #include <sys/types.h>
 #include <string.h>
 #include <limits.h>
+#define NUMBER_OF_CLIENTS_SUPPORTED = 5
 
 // Function Prototypes
 int isPortValid(int, char*);
@@ -42,39 +55,34 @@ int establishASocket(int);
 int getConnection(int);
 void* worker(void*);
 
-/* argc is the number of parameters - 2 are required for hostname and port number */
-int main(int argc, char* argv[]) // main thread, or dispatcher thread
+// argc is the number of parameters needed to start the program 
+// 2 are required for - one for hostname and one for port number
+int main(int argc, char* argv[])
 {
-	int serverSocketFd;
+	int serverSocketFd; // Used as socket file descriptors
 	int clientSocketFd;
 	int port;
-	int threadCounter = 0; 
-	pthread_t threads[5]; // 5 threads to support 5 clients simultaneously
+	int threadCounter = 0; // maybe change to 
+	struct chatRooms;
+	{
+
+		pthread_t threads[NUMBER_OF_CLIENTS_SUPPORTED];
+	};
+	
 	char buf[1000]; // buffer for storing the string sent between clients and server
 
 	// Store the port entered from the command line
+	// Function does some error checking on the user input to ensure port is acceptable
 	port = isPortValid(argc, argv);
 
 	// Make a server socket
 	serverSocketFd = establishASocket(port);
 
-	/* Main server loop - start accepting incoming requests */
+	/* Server loop - start accepting incoming requests */
 	while (1) {
 
-		clientSocketFd = getConnection(server_s);
+		clientSocketFd = getConnection(serverSocketFd);
 		pthread_create(&threads[threadCounter++], NULL, &worker, &clientSocketFd);
-
-		/* Join terminated thread //
-		if (pthread_join(threads[i-1], NULL) != 0) {
-			fprintf(stderr, "Error joining a thread...\n");
-			exit(1);
-		}
-
-		/*visits++;
-		sprintf(buf, "This server has been contacted %d time%s\n",
-			visits, visits == 1 ? "." : "s.");
-		send(client_s, buf, strlen(buf), 0);*/
-
 
 	}
 	close(clientSocketFd);
@@ -83,6 +91,10 @@ int main(int argc, char* argv[]) // main thread, or dispatcher thread
 	return 0;
 }
 
+/*
+This function returns an error message to the user if the command line does not include a port number.
+An error is also returned to the user if the port is not acceptable.
+*/
 int isPortValid(int argc, char* argv)
 {
 	// Check for proper command line format
@@ -91,7 +103,7 @@ int isPortValid(int argc, char* argv)
 		exit(1);
 	}
 
-	// The port must be above 1024. 1 - 1024 are reserved by the system. There are no ports above 65535.
+	// The port must be above 1024. 1 - 1024 are reserved for the system. There are no ports above 65535.
 	if (argv[1] <= 1024 || argv[1] > 65535) {
 		fprintf(stderr, "The port number entered is invalid\n", argv[0]);
 		exit(1);
@@ -102,57 +114,60 @@ int isPortValid(int argc, char* argv)
 /*
 Creates a socket that is returned as a file descriptor.
 The socket is also binded and listens for connection requests.
-Error checking is performed after each socket function to notify user of failure.
+Error checking is performed after each socket operation to notify the user of failure.
 */
 int establishASocket(int port)
 {
-	char   myname[_SC_HOST_NAME_MAX + 1]; // Maximum length of a hostname + a NULL character
-	int    s;	// Used to return a server file descriptor
-	struct sockaddr_in serverAddress;	// structure to hold the server address
-	struct hostent* hp;
+	char myname[_SC_HOST_NAME_MAX + 1]; // Maximum length of a hostname + a NULL character
+	int socketFD; // Used to return a server file descriptor
+	struct sockaddr_in serverAddress;	// Structure to hold the server address
+	struct hostent* hostIP; // The hostent structure gives access to (int h_addrtype) Address type.
 
-	memset(&serverAddress, 0, sizeof(struct sockaddr_in)); // clear the address
-	gethostname(myname, _SC_HOST_NAME_MAX); // Store our hostname
-	hp = gethostbyname(myname); // Retrieve our address info
+	gethostname(myname, _SC_HOST_NAME_MAX); // Retrieve our hostname
+	hostIP = gethostbyname(myname); // Store our address info
 	
-	if (hp == NULL) { // we don't exist !? */
-		fprintf(stderr, "Could not get hostname\n", argv[0]);
+	if (hostIP == NULL) { // Check if retrieving the hostname IP did not work
+		fprintf(stderr, "Hostname could not be determined\n", argv[0]);
 		exit(1);
 	}
 
-	serverAddress.sin_family = hp->h_addrtype;           /* this is our host address */
-	serverAddress.sin_port = htons(port);	/* this is our port number */
+	// The next several lines of code construct the socket address
+	&serverAddress = malloc(sizeof(struct sockaddr_in));
+	serverAddress.sin_family = hostIP->h_addrtype; // this is the host address
+	serverAddress.sin_port = htons(port); // host to network short function - used to account for little/big Endian
 
-	if ((s = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+	if ((socketFD = socket(AF_INET, SOCK_STREAM, 0)) < 0) { // Attempt socket creation
 		fprintf(stderr, "socket creation failed\n");
 		exit(1);
 	}
 
-	if (bind(s, (struct sockaddr*)&serverAddress, sizeof(struct sockaddr_in)) < 0) {
+	if (bind(socketFD, &serverAddress, sizeof(serverAddress)) < 0) { // Attempt socket address binding
 		fprintf(stderr, "bind failed\n");
-		close(s);
+		close(socketFD);
 		exit(1);
 	}
 
-	if (listen(s, 5) < 0) {
+	if (listen(socketFD, NUMBER_OF_CLIENTS_SUPPORTED) < 0) { // Attempt socket listen operation
 		fprintf(stderr, "listen failed\n");
 		exit(1);
 	}
 
-	return(s);
+	return(socketFD);
 }
 
-/* Wait for a connection to occur on a socket created with establish() */
-int getConnection(int s)
+/* Wait for a connection to occur on a socket created with establishASocket() */
+int getConnection(int socketFD)
 {
-	int t;                  /* socket of connection */
+	int clientSocketFD;
+	struct sockaddr_in clientAddress;
+	int clientAddressSize = sizeof(struct sockaddr_in);
 
-	if ((t = accept(s, NULL, NULL)) < 0) {		/* accept connection if there is one */
+	if ((clientSocketFD = accept(socketFD, &clientAddress, &clientAddressSize)) < 0) { // Accept connection if there is one
 		fprintf(stderr, "accept failed\n");
 		exit(1);
 	}
 
-	return(t);
+	return(clientSocketFD);
 }
 
 // This is the thread routine that runs when a thread is created to execute a command //
