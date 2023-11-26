@@ -49,50 +49,82 @@ clientFD -> Server main, check current thread names ->
 #include <limits.h>
 #define NUMBER_OF_CLIENTS_SUPPORTED 5
 
+int clientCounter = 0; // Tracks concurrent clien
+
 // Function Prototypes
 int isPortValid(int, char*);
 int establishASocket(int);
 int getConnection(int);
-//void* worker(void*);
+void* worker(void*);
 
-// argc is the number of parameters needed to start the program 
-// 2 are required for - one for hostname and one for port number
+struct client
+	{
+		char* name;
+		pthread_t thread; // not sure if needed
+		int port;
+		int socketFD;
+		int ID;
+};
+
+/*
+argc is the number of parameters needed to start the program
+2 are required for - one for hostname and one for port number
+*/
 int main(int argc, char* argv[])
 {
 	int serverSocketFd; // Used as socket file descriptors
 	int clientSocketFd;
 	int serverPort;
-	int chatRoomCounter = 0;
 	char buf[1000]; // buffer for storing the string sent between clients and server
-	struct chatRoom;
-	{
-		char* name;
-		pthread_t thread;
-		int port;
-		int socketFD;
-	};
-	
-
+	struct client connectedClients[NUMBER_OF_CLIENTS_SUPPORTED];
 
 	// Store the port entered from the command line
 	// Function does some error checking on the user input to ensure port is acceptable
 	serverPort = isPortValid(argc, argv[1]);
 
-	// Make a server socket
+	// Make a server socket, bind the IP address, and begin listening for connecting sockets
 	serverSocketFd = establishASocket(serverPort);
 
-	/* Server loop - start accepting incoming requests */
+	// Server loop - start accepting incoming requests
 	while (1) {
 
-		clientSocketFd = getConnection(serverSocketFd);
+		// Block incoming connections if maximum number of clients are connected
+		if (clientCounter <= NUMBER_OF_CLIENTS_SUPPORTED) {
+			clientSocketFd = getConnection(serverSocketFd);
+		}
+		else {
+			printf("Connection limit has been reached. Please try again later.\n");
+			continue;
+		}
+
 		printf("Connection to a Client was successful\n");
+
+		// Read the name of the chatroom a client wants to join
 		if (read(clientSocketFd, buf, 1000) < 0) {
 			fprintf(stderr, "Failed to read chatroom name from client.\n");
 			exit(1);
 		}
-		//pthread_create(&threads[threadCounter++], NULL, &worker, &clientSocketFd);
-		break;
+
+		// Save the chatroom name from client and compare with existing chatroom names
+		for (int i = 0; i < NUMBER_OF_CLIENTS_SUPPORTED; i++) {
+			if (strncmp(connectedClients[i].name, buf, strlen(buf)) == 0) {
+				// The client wants to join a room that exists
+			}
+		}
+
+		/*// Declare a new chatRoom
+		struct client room;
+		room.name = buf;
+		room.port = ++serverPort;
+		room.socketFD = clientSocketFd;
+		room.ID = 
+		clientCounter++;
+		*/
+
+		pthread_create(&(room.thread), NULL, &worker, &clientSocketFd);
+		
 	}
+
 	close(clientSocketFd);
 	close(serverSocketFd);
 
@@ -156,6 +188,8 @@ int establishASocket(int port)
 		exit(1);
 	}
 
+	printf("Waiting for client connection...\n");
+
 	if (listen(socketFD, NUMBER_OF_CLIENTS_SUPPORTED) < 0) { // Attempt socket listen operation
 		fprintf(stderr, "listen failed\n");
 		exit(1);
@@ -176,10 +210,11 @@ int getConnection(int socketFD)
 		exit(1);
 	}
 
+	clientCounter++;
 	return(clientSocketFD);
 }
 
-/*// This is the thread routine that runs when a thread is created to execute a command //
+// This is the thread routine that runs when a thread is created to execute a command //
 void* worker(void* arg)
 {
 	int socket;
@@ -211,4 +246,3 @@ void* worker(void* arg)
 
 	pthread_exit(0);
 }
-*/

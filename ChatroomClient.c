@@ -30,11 +30,13 @@ Things to do:
 int isCommandLineCorrect(int);
 int isPortValid(char*);
 int createAndConnectSocket(char*, int);
+char* getUsername();
 
 int main(int argc, char* argv[])
 {
     int socketFd, port;
     char buf[1000]; // buffer for storing the string sent between clients and server
+    char username[50]; // Used for displaying the name of a user sending a message
 
     if (isCommandLineCorrect(argc) && isPortValid(argv[2]))
         port = atoi(argv[2]);
@@ -42,9 +44,13 @@ int main(int argc, char* argv[])
         socketFd = createAndConnectSocket(argv[1], port);
 
         printf("Connection to Server was successful\n");
-        printf("Type the name of a Chatroom you would like to join and press enter: ");
 
+        // Prompt and Save user's name
+        username = getUsername();
+
+        printf("Type the name of a Chatroom you would like to join and press enter: ");
         fgets(buf, 1000, stdin);
+        buf[strlen(buf) - 1] = '\0'; // Remove newline char from end of string
 
         // write the name of chatroom to server main
         if (write(socketFd, buf, strlen(buf) + 1) < 0) {
@@ -86,6 +92,7 @@ int main(int argc, char* argv[])
     printf("n: %d\n", charactersRead);
 
     /* Close the socket. */
+    free(username);
     close(socketFd);
     return 0;
 }
@@ -145,4 +152,17 @@ int createAndConnectSocket(char* hostname, int port)
     }
 
     return(fd);
+}
+
+char* getUsername()
+{
+    char* username = malloc(50);
+
+    printf("Type your user name: ");
+
+    fgets(username, 50, stdin);
+    username[strlen(username) - 1] = '\0'; // Remove newline char from end of string
+    strcat(username, "> ");
+
+    return username;
 }
