@@ -13,7 +13,6 @@ Things to do:
     review and update function names to be more descriptive
     review error catching
     add block documentation for functions and variables
-
 */
 
 #include <sys/types.h>

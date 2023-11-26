@@ -74,6 +74,7 @@ argc is the number of parameters needed to start the program
 int main(int argc, char* argv[])
 {
 	int serverSocketFd; // Used as socket file descriptor
+	int clientSocketFd;
 	int serverPort;
 	char buf[1000]; // buffer for storing the string sent between clients and server
 	struct client connectedClients[NUMBER_OF_CLIENTS_SUPPORTED]; // might not be necessary
@@ -92,7 +93,7 @@ int main(int argc, char* argv[])
 		if (clientCounter <= NUMBER_OF_CLIENTS_SUPPORTED) {
 		
 		// Try connecting a new client
-			int clientSocketFd = getConnection(serverSocketFd);
+			clientSocketFd = getConnection(serverSocketFd);
 			// Check whether getConnection() accepts client's socket or not
 			if (clientSocketFd < 0) {
 				fprintf(stderr, "Error on accepting client socket...\n");
@@ -119,7 +120,7 @@ int main(int argc, char* argv[])
 		// Move client to existing thread
 			
 		// Move client to a new thread that will handle read/write operations
-			handleIncomingConnection(serverSocketFd);
+			handleIncomingConnection(clientSocketFd);
 		}
 		else {
 			printf("Connection limit has been reached. Please try again later.\n");
@@ -228,10 +229,10 @@ int getConnection(int socketFD)
 }
 
 // This is the thread routine that runs when a thread is created to execute a command //
-void* worker(void* serverSocketFD)
+void* worker(void* clientSocketFd)
 {
 	int socketFd;
-	socketFd = *(int*)serverSocketFD;
+	socketFd = *(int*)clientSocketFd;
 	int	len = 0;
 	char buff[1000];
 
@@ -258,8 +259,8 @@ void* worker(void* serverSocketFD)
 /*
 This function starts a thread that will handle all read/write operations between clients
 */
-void handleIncomingConnection(int serverSocketFD)
+void handleIncomingConnection(int clientSocketFd)
 {
 	pthread_t id;
-	pthread_create(&id, NULL, &worker, &serverSocketFD);
+	pthread_create(&id, NULL, &worker, &clientSocketFd);
 }
