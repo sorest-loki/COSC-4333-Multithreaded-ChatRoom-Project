@@ -36,10 +36,21 @@ int main(int argc, char* argv[])
     int socketFd, port;
     char buf[1000]; // buffer for storing the string sent between clients and server
 
-    if (isCommandLineCorrect(argc) && isPortValid(argv[2])
+    if (isCommandLineCorrect(argc) && isPortValid(argv[2]))
         port = atoi(argv[2]);
 
-    socketFd = createAndConnectSocket(argv[1], port);
+        socketFd = createAndConnectSocket(argv[1], port);
+
+        printf("Connection to Server was successful\n");
+        printf("Type the name of a Chatroom you would like to join and press enter: ");
+
+        fgets(buf, 1000, stdin);
+
+        // write the name of chatroom to server main
+        if (write(socketFd, buf, strlen(buf) + 1) < 0) {
+            fprintf(stderr, "Error on writing chatroom name to server");
+            exit(1);
+        }
 
     while (1)
     {
@@ -82,8 +93,8 @@ int main(int argc, char* argv[])
 // Check whether the number of command-line arguments is correct
 int isCommandLineCorrect(int argc)
 {
-    if (argc != 4) {
-        fprintf(stderr, "Usage: %s server-hostname port chat-room\n", argv[0]);
+    if (argc != 3) {
+        fprintf(stderr, "Usage: ./Client (Server Hostname) (Port)\n");
         exit(1);
     }
     return 1;
@@ -92,7 +103,9 @@ int isCommandLineCorrect(int argc)
 // The port must be above 1024. 1 - 1024 are reserved by the system. There are no ports above 65535.
 int isPortValid(char* arg)
 {    
-    if (arg <= 1024 || arg > 65535) {
+    int port = atoi(arg);
+
+    if (port <= 1024 || port > 65535) {
         fprintf(stderr, "The port number entered is invalid\n", arg);
         exit(1);
     }
@@ -114,7 +127,6 @@ int createAndConnectSocket(char* hostname, int port)
     }
 
     // The next several lines of code construct the socket address
-    &address = malloc(sizeof(struct sockaddr_in));
     address.sin_family = AF_INET;
     address.sin_port = htons(port); // host to network short function - used to account for little/big Endian
 
