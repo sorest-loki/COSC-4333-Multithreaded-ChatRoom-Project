@@ -34,7 +34,7 @@ struct client
 	{
 		char* name;
 		int port;
-		int socketFD;
+		int socketFd;
 		int ID;
 };
 
@@ -98,15 +98,6 @@ int main(int argc, char* argv[])
 			printf("Connection limit has been reached. Please try again later.\n");
 			continue;
 		}
-
-		/*// Declare a new chatRoom
-		struct client room;
-		room.name = buf;
-		room.port = ++serverPort;
-		room.socketFD = clientSocketFd;
-		room.ID = 
-		clientCounter++;
-		*/
 	}
 
 	close(serverSocketFd);

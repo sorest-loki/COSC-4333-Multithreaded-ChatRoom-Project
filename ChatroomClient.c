@@ -74,18 +74,10 @@ int main(int argc, char* argv[])
             break;
     }
 
-    /* Repeatedly read data from socket and write to user.s screen.
-    charactersRead = read(socket, buf, sizeof(buf));
-    while (charactersRead > 0) {
-        write(1, buf, charactersRead);
-        printf("n: %d\n", charactersRead);
-        charactersRead = recv(socket, buf, sizeof(buf), 0);
-    }
-    printf("n: %d\n", charactersRead);
-
-    /* Close the socket. */
+    // Close the socket.
     free(username);
     close(socketFd);
+
     return 0;
 }
 
@@ -146,6 +138,7 @@ int createAndConnectSocket(char* hostname, int port)
     return(fd);
 }
 
+// Function to prompt and store the username that will display to other clients in a chat group.
 char* getUsername()
 {
     char* username = (char*)malloc(50);
