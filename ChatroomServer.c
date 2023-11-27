@@ -29,6 +29,7 @@ int establishASocket(int);
 int getConnection(int);
 void handleIncomingConnection(int);
 void* worker(void*);
+void echoToOtherClients(char*, int);
 
 struct client
 {
@@ -213,10 +214,16 @@ void* worker(void* clientSocketFd)
 
 	// iterate, echoing all data received until end of file
 	while ((len = read(socketFd, buff, 1000)) > 0) {
+
+		// Echo all data received to the other clients
+		echoToOtherClients(buffer, socketFd);
+
+		/*		Might be unneeded
 		if (len = write(socketFd, buff, strlen(buff) + 1) < 0) {
 			fprintf(stderr, "Error in the thread. Failed to write to buffer.\n");
 			exit(1);
 		}
+		*/
 
 		int i = strncmp("Bye", buff, 3);
 		if (i == 0)
@@ -226,4 +233,18 @@ void* worker(void* clientSocketFd)
 	close(socketFd);
 
 	pthread_exit(0);
+}
+
+void echoToOtherClients(char* buffer, int socketFd)
+{
+	for (int i = 0; i < clientCounter; i++) {
+
+		if (socketFd != connectedClients[i]) {
+
+			if (write(connectedClients[i], buffer, strlen(buffer) + 1) < 0) {
+				fprintf(stderr, "Error when attempting to write to another client.\n");
+				exit(1);
+			}
+		}
+	}
 }
