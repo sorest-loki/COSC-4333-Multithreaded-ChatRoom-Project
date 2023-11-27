@@ -27,12 +27,12 @@ void handleIncomingConnection(pthread_t*, int);
 void* worker(void*);
 void echoToOtherClients(char*, int);
 
-struct client
+struct clientRooms
 {
 	char* name;
 	int port;
 	int socketFd;
-	int ID;
+	pthread_t ID;
 };
 
 int connectedClients[NUMBER_OF_CLIENTS_SUPPORTED];
@@ -162,7 +162,7 @@ int establishASocket(int port)
 		exit(1);
 	}
 
-	printf("Waiting for client connection...\n");
+	printf("Listening for client connection...\n");
 
 	if (listen(socketFD, NUMBER_OF_CLIENTS_SUPPORTED) < 0) { // Attempt socket listen operation
 		fprintf(stderr, "listen failed\n");
