@@ -218,13 +218,6 @@ void* worker(void* clientSocketFd)
 		// Echo all data received to the other clients
 		echoToOtherClients(buff, socketFd);
 
-		/*		Might be unneeded
-		if (len = write(socketFd, buff, strlen(buff) + 1) < 0) {
-			fprintf(stderr, "Error in the thread. Failed to write to buffer.\n");
-			exit(1);
-		}
-		*/
-
 		int i = strncmp("Bye", buff, 3);
 		if (i == 0)
 			break;
@@ -235,6 +228,7 @@ void* worker(void* clientSocketFd)
 	pthread_exit(0);
 }
 
+// Function performs a write operation to all socket file descriptors besides itself
 void echoToOtherClients(char* buffer, int socketFd)
 {
 	for (int i = 0; i < clientCounter; i++) {

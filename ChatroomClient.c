@@ -59,7 +59,7 @@ int main(int argc, char* argv[])
 
     while (1)
     {
-        // Clear buffer and perform next write operation
+        // Clear buffers and perform next write operation
         bzero(buf, 1000);
         bzero(message, 1000);
         strncpy(message, username, 50);
@@ -69,19 +69,12 @@ int main(int argc, char* argv[])
             fprintf(stderr, "Error with writing to the client socket\n");
         }
 
-        /*// Clear buffer and perform next read operation
-        bzero(buf, 1000);
-        if (read(socketFd, buf, 1000) < 0) {
-            fprintf(stderr, "Error with writing to the client socket\n");
-        }
-        */
-
         int i = strncmp("Bye", buf, 3);
         if (i == 0)
             break;
     }
 
-    // Close the socket.
+    // Close the socket
     free(username);
     close(socketFd);
 
