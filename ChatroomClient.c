@@ -30,6 +30,7 @@ int main(int argc, char* argv[])
     int socketFd, port;
     char buf[1000]; // buffer for storing the string sent between clients and server
     char* username; // Used for displaying the name of a user sending a message
+    char message[1000]; // Used for the concatenation of username + buffer
 
     if (isCommandLineCorrect(argc) && isPortValid(argv[2]))
         port = atoi(argv[2]);
@@ -53,19 +54,18 @@ int main(int argc, char* argv[])
 
     while (1)
     {
-        int length; // number of characters that have been read
-
         // Clear buffer and perform next write operation
         bzero(buf, 1000);
-        strncpy(buf, username, sizeof(username));
+        strncpy(message, username, sizeof(username));
         fgets(buf, 1000, stdin);
-        if (length = write(socketFd, buf, strlen(buf) + 1) < 0) {
+        strcat(message, buf);
+        if (write(socketFd, message, strlen(message) + 1) < 0) {
             fprintf(stderr, "Error on writing");
         }
 
         // Clear buffer and perform next read operation
         bzero(buf, 1000);
-        if (length = read(socketFd, buf, 1000) < 0) {
+        if (read(socketFd, buf, 1000) < 0) {
             fprintf(stderr, "Error on reading");
         }
 
