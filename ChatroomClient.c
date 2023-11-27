@@ -17,13 +17,14 @@ Javian Zeno
 #include <unistd.h>
 #include <string.h>
 #include <malloc.h>
-//#include <pthread.h>
+#include <pthread.h>
 
 // Function prototypes
 int isCommandLineCorrect(int);
 int isPortValid(char*);
 int createAndConnectSocket(char*, int);
 char* getUsername();
+void* readAndPrint(void* socketFd);
 
 int main(int argc, char* argv[])
 {
@@ -49,27 +50,31 @@ int main(int argc, char* argv[])
 
         // write the name of chatroom to server main
         if (write(socketFd, buf, strlen(buf) + 1) < 0) {
-            fprintf(stderr, "Error on writing chatroom name to server");
+            fprintf(stderr, "Error on writing chatroom name to server\n");
             exit(1);
         }
+
+        pthread_t id;
+        pthread_create(&id, NULL, &readAndPrint, &socketFd);
 
     while (1)
     {
         // Clear buffer and perform next write operation
         bzero(buf, 1000);
         bzero(message, 1000);
-        strncpy(message, username, sizeof(username));
+        strncpy(message, username, 50);
         fgets(buf, 1000, stdin);
         strcat(message, buf);
         if (write(socketFd, message, strlen(message) + 1) < 0) {
-            fprintf(stderr, "Error on writing");
+            fprintf(stderr, "Error with writing to the client socket\n");
         }
 
-        // Clear buffer and perform next read operation
+        /*// Clear buffer and perform next read operation
         bzero(buf, 1000);
         if (read(socketFd, buf, 1000) < 0) {
-            fprintf(stderr, "Error on reading");
+            fprintf(stderr, "Error with writing to the client socket\n");
         }
+        */
 
         printf("%s", buf);
 
@@ -154,4 +159,22 @@ char* getUsername()
     strcat(username, "> ");
 
     return username;
+}
+
+// Function that continuously performs a read operation on a separate thread to print messages to client.
+void* readAndPrint(void* socketFd)
+{
+    int threadSocketFd;
+    threadSocketFd = *(int*)socketFd;
+    char buff[1000];
+
+    // Clear any data in the buffer
+    bzero(buff, 1000);
+
+    while (read(threadSocketFd, buff, 1000) > 0) {
+
+        printf("%s", buff);
+    }
+
+    close(threadSocketFd);
 }
