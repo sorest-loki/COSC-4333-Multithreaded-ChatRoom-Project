@@ -17,6 +17,7 @@ Javian Zeno
 #include <unistd.h>
 #include <string.h>
 #include <malloc.h>
+//#include <pthread.h>
 
 // Function prototypes
 int isCommandLineCorrect(int);
@@ -56,6 +57,7 @@ int main(int argc, char* argv[])
 
         // Clear buffer and perform next write operation
         bzero(buf, 1000);
+        strncpy(buf, username, sizeof(username));
         fgets(buf, 1000, stdin);
         if (length = write(socketFd, buf, strlen(buf) + 1) < 0) {
             fprintf(stderr, "Error on writing");
@@ -67,7 +69,7 @@ int main(int argc, char* argv[])
             fprintf(stderr, "Error on reading");
         }
 
-        printf("%s%s", username, buf);
+        printf("%s", buf);
 
         int i = strncmp("Bye", buf, 3);
         if (i == 0)
