@@ -76,8 +76,6 @@ int main(int argc, char* argv[])
         }
         */
 
-        printf("%s", buf);
-
         int i = strncmp("Bye", buf, 3);
         if (i == 0)
             break;
