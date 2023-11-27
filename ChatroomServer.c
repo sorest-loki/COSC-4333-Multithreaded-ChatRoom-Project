@@ -83,12 +83,13 @@ int main(int argc, char* argv[])
 				exit(1);
 			}
 
-			// Save the chatroom name from client and compare with existing chatroom names
+			/*// Save the chatroom name from client and compare with existing chatroom names
 			for (int i = 0; i < NUMBER_OF_CLIENTS_SUPPORTED; i++) {
 				if (strncmp(connectedClients[i].name, buf, strlen(buf)) == 0) {
 					// The client wants to join a room that exists
 				}
 			}
+			*/
 
 			// Move client to existing thread
 
@@ -216,7 +217,7 @@ void* worker(void* clientSocketFd)
 	while ((len = read(socketFd, buff, 1000)) > 0) {
 
 		// Echo all data received to the other clients
-		echoToOtherClients(buffer, socketFd);
+		echoToOtherClients(buff, socketFd);
 
 		/*		Might be unneeded
 		if (len = write(socketFd, buff, strlen(buff) + 1) < 0) {
