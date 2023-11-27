@@ -207,14 +207,13 @@ void* worker(void* clientSocketFd)
 {
 	int socketFd;
 	socketFd = *(int*)clientSocketFd;
-	int	len = 0;
 	char buff[1000];
 
 	// Clear any data in the buffer
 	bzero(buff, 1000);
 
 	// iterate, echoing all data received until end of file
-	while ((len = read(socketFd, buff, 1000)) > 0) {
+	while ((read(socketFd, buff, 1000)) > 0) {
 
 		// Echo all data received to the other clients
 		echoToOtherClients(buff, socketFd);
