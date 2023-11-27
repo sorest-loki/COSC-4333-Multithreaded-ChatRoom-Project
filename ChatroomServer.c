@@ -1,9 +1,7 @@
 /*
 Multithreaded Server Project
 
-Shahanze Sabri
 Roberto Rivera
-Javian Zeno
 
 2023 Fall COSC 4333 - Distributed Systems
 */
@@ -21,13 +19,11 @@ Javian Zeno
 #include <limits.h>
 #define NUMBER_OF_CLIENTS_SUPPORTED 5
 
-int clientCounter = 0; // Tracks the number of concurrent clients
-
 // Function Prototypes
 int isPortValid(int, char*);
 int establishASocket(int);
 int getConnection(int);
-void handleIncomingConnection(int);
+void handleIncomingConnection(pthread_t*, int);
 void* worker(void*);
 void echoToOtherClients(char*, int);
 
@@ -40,6 +36,7 @@ struct client
 };
 
 int connectedClients[NUMBER_OF_CLIENTS_SUPPORTED];
+int clientCounter = 0; // Tracks the number of concurrent clients
 
 /*
 argc is the number of parameters needed to start the program
@@ -50,6 +47,7 @@ int main(int argc, char* argv[])
 	int serverSocketFd; // Used as socket file descriptor
 	int clientSocketFd;
 	int serverPort;
+	pthread_t ID;
 	char buf[1000]; // buffer for storing the string sent between clients and server
 
 	// Store the port entered from the command line
@@ -63,7 +61,7 @@ int main(int argc, char* argv[])
 	while (1) {
 
 		// Block incoming connections if maximum number of clients are connected
-		if (clientCounter <= NUMBER_OF_CLIENTS_SUPPORTED) {
+		if (clientCounter < NUMBER_OF_CLIENTS_SUPPORTED) {
 
 			// Try connecting a new client
 			clientSocketFd = getConnection(serverSocketFd);
@@ -94,11 +92,11 @@ int main(int argc, char* argv[])
 			// Move client to existing thread
 
 			// Move client to a new thread that will handle read/write operations
-			handleIncomingConnection(clientSocketFd);
+			handleIncomingConnection(&ID, clientSocketFd);
 		}
 		else {
 			printf("Connection limit has been reached. Please try again later.\n");
-			continue;
+			pthread_join(ID, 0);
 		}
 	}
 
@@ -196,10 +194,9 @@ int getConnection(int socketFD)
 /*
 This function starts a thread that will handle all read/write operations between clients
 */
-void handleIncomingConnection(int clientSocketFd)
+void handleIncomingConnection(pthread_t* ID, int clientSocketFd)
 {
-	pthread_t id;
-	pthread_create(&id, NULL, &worker, &clientSocketFd);
+	pthread_create(ID, NULL, &worker, &clientSocketFd);
 }
 
 // This is the thread routine that runs when a thread is created to execute a command //

@@ -1,9 +1,7 @@
 /*
 Chatroom Client Project
 
-Shahanze Sabri
 Roberto Rivera
-Javian Zeno
 
 2023 Fall COSC 4333 - Distributed Systems
 */
@@ -46,7 +44,7 @@ int main(int argc, char* argv[])
         printf("Type the name of a Chatroom you would like to join and press enter: ");
         bzero(buf, 1000);
         fgets(buf, 1000, stdin);
-        buf[strlen(buf) - 1] = '\0'; // Remove newline char from end of string
+        buf[strlen(buf) - 1] = '\0'; // Removes newline char from end of string
 
         // write the name of chatroom to server main
         if (write(socketFd, buf, strlen(buf) + 1) < 0) {
@@ -54,6 +52,7 @@ int main(int argc, char* argv[])
             exit(1);
         }
 
+        // Begin a concurrent thread that handles blocking read operations
         pthread_t id;
         pthread_create(&id, NULL, &readAndPrint, &socketFd);
 
@@ -168,4 +167,5 @@ void* readAndPrint(void* socketFd)
     }
 
     close(threadSocketFd);
+    pthread_exit(0);
 }
