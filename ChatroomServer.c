@@ -217,7 +217,18 @@ void* worker(void* clientSocketFd)
 	while ((len = read(socketFd, buff, 1000)) > 0) {
 
 		// Echo all data received to the other clients
-		echoToOtherClients(buff, socketFd);		
+		echoToOtherClients(buff, socketFd);
+
+		/*		Might be unneeded
+		if (len = write(socketFd, buff, strlen(buff) + 1) < 0) {
+			fprintf(stderr, "Error in the thread. Failed to write to buffer.\n");
+			exit(1);
+		}
+		*/
+
+		int i = strncmp("Bye", buff, 3);
+		if (i == 0)
+			break;
 	}
 
 	close(socketFd);
@@ -235,10 +246,6 @@ void echoToOtherClients(char* buffer, int socketFd)
 				fprintf(stderr, "Error when attempting to write to another client.\n");
 				exit(1);
 			}
-			// Assign the exit word to leave a chatroom
-			int j = strncmp("Bye", buff, 3);
-					if (j == 0)
-						break;
 		}
 	}
 }

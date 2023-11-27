@@ -43,7 +43,6 @@ int main(int argc, char* argv[])
         username = getUsername();
 
         printf("Type the name of a Chatroom you would like to join and press enter: ");
-        bzero(buf, 1000);
         fgets(buf, 1000, stdin);
         buf[strlen(buf) - 1] = '\0'; // Remove newline char from end of string
 
@@ -57,7 +56,6 @@ int main(int argc, char* argv[])
     {
         // Clear buffer and perform next write operation
         bzero(buf, 1000);
-        bzero(message, 1000);
         strncpy(message, username, sizeof(username));
         fgets(buf, 1000, stdin);
         strcat(message, buf);
