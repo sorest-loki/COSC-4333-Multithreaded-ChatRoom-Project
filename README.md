@@ -2,7 +2,7 @@
 
 This project contains a server program and a client program.
 
-Both programs are based on Unix/Linux operating systems.
+Both programs are written for Linux operating systems.
 
 Before the programs can run, first save both files to an accessible directory.
 Open a new terminal, and go to the directory which the files are located.
